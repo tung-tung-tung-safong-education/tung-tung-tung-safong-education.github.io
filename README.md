@@ -4,6 +4,8 @@ Public teaching resources, grouped under [Tung Tung Tung SaFong Education](https
 
 ## Public routes
 
+- [Rescue Ricky — Change the Subject Arcade](https://tung-tung-tung-safong-education.github.io/rescue-ricky/)
+
 - [UGA MC Trainer](https://tung-tung-tung-safong-education.github.io/uga-mc-trainer/)
 
 - [Knowledge Cards](https://tung-tung-tung-safong-education.github.io/knowledge-cards/)
@@ -58,3 +60,7 @@ KaTeX loads from jsDelivr. Textbook images and source-project files are not publ
 `docs/uga-mc-trainer/index.html` is an exact copy of the current standalone `school MC version/UGA MC Trainer.html`. It contains 810 source questions across 19 school papers with worked solutions and authored reassessments. All scripts, fonts and figures are embedded. Source SHA-256: `b725c4b7953fb21524f46a54ca07c79a5e606f36a9e92f4ab8a7f1539aa7961f`. Update the original trainer first, then copy the release HTML here.
 
 The app keeps progress in browser local storage with UGA-specific keys and supports `.ugamctrainer` profile export/import. Progress stored in the native app or another website does not transfer automatically; use profile export/import. Only the standalone app is published, with no saved profiles, original PDFs or local review files.
+
+## Rescue Ricky — 12 October 2026
+
+`docs/rescue-ricky/index.html` is an exact copy of the supplied `Rescue Ricky/preview/arcade_refined_preview.html`. This S2 Chapter 4.3 game practises changing the subject of a formula through algebra rescue missions. Source SHA-256: `581960b594550122d75f2debc22a6a76ecc8b59de3a15d06f9c2cea7a9e91577`. Images are embedded; Google Fonts and KaTeX load from external CDNs. Update the source project first, then copy the selected release HTML here.
