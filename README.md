@@ -4,6 +4,8 @@ Public teaching resources, grouped under [Tung Tung Tung SaFong Education](https
 
 ## Public routes
 
+- [HKMO Heat Past Paper Bank](https://tung-tung-tung-safong-education.github.io/hkmo-paper-bank/)
+
 - [Rescue Ricky — Change the Subject Arcade](https://tung-tung-tung-safong-education.github.io/rescue-ricky/)
 
 - [UGA MC Trainer](https://tung-tung-tung-safong-education.github.io/uga-mc-trainer/)
@@ -24,7 +26,7 @@ The free GitHub organisation `tung-tung-tung-safong-education` owns the public r
 
 GitHub Pages publishes from branch **main**, folder **/docs**, with HTTPS enforced. Push reviewed changes to `main`, wait for the **pages-build-deployment** workflow, then verify affected public routes and interactions. The local project generators remain authoritative for future app changes; copy only intended public release files into this repository.
 
-`docs/` is the complete publication directory. It contains the landing page, three unchanged public applications, `.nojekyll`, and a favicon. It contains no source-project folders, credentials, assessment originals, student records, or local QA files.
+`docs/` is the complete publication directory. It contains the landing page, published teaching applications, `.nojekyll`, and a favicon. It contains no source-project folders, credentials, assessment originals, student records, or local QA files.
 
 The three app files were compared byte for byte with their existing Netlify releases and with their new GitHub Pages responses on 3 October 2026. The landing page is new. Existing Netlify sites and the original project files were not modified.
 
@@ -64,3 +66,11 @@ The app keeps progress in browser local storage with UGA-specific keys and suppo
 ## Rescue Ricky — 12 October 2026
 
 `docs/rescue-ricky/index.html` is an exact copy of the supplied `Rescue Ricky/preview/arcade_refined_preview.html`. This S2 Chapter 4.3 game practises changing the subject of a formula through algebra rescue missions. Source SHA-256: `581960b594550122d75f2debc22a6a76ecc8b59de3a15d06f9c2cea7a9e91577`. Images are embedded; Google Fonts and KaTeX load from external CDNs. Update the source project first, then copy the selected release HTML here.
+
+## HKMO Heat Past Paper Bank — 14 October 2026
+
+`docs/hkmo-paper-bank/index.html` is an exact copy of the reviewed `HKMO Session/app/HKMO_Heat_Past_Paper_Bank.html` from the Past public exam unified app project. It contains 415 Heat Individual questions across 35 papers from 1988–89 to 2021–22, with 4 strands, 48 sub-topics and 794 embedded question/solution images. All scripts, fonts and images are embedded. Source SHA-256: `6b0e77619542705f4dd7a068ab01684c5d7f1645d1e4377fc8bc63dfe34ec523`. Update the original builder/data first, then copy the reviewed release HTML here.
+
+Questions preserve captured source content. Human topic classifications, revised classifications and AI tags remain labelled; difficulty ratings are judged. Printed solutions are available for 315 questions; the 100 questions from 1995–96 to 2004–05 retain the explicit missing-solution notice. This is a practice and worksheet bank; automatic mock-test marking is not implemented.
+
+Saved practice and sets use the `hkmobank:` namespace and `HKMOSET:` set codes. Data saved on another browser origin does not transfer automatically; use the app's practice backup/restore and set-code controls. Only the standalone release HTML is published; original PDFs, build sources and local QA artifacts remain outside this repository.
