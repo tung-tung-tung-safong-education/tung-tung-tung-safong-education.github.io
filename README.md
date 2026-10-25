@@ -13,6 +13,7 @@ Public teaching resources, grouped under [Tung Tung Tung SaFong Education](https
 - [Knowledge Cards](https://tung-tung-tung-safong-education.github.io/knowledge-cards/)
 
 - [UGA past papers bank](https://tung-tung-tung-safong-education.github.io/uga-past-papers-bank/)
+- [M2 Knowledge Cards](https://tung-tung-tung-safong-education.github.io/m2-knowledge-cards/)
 - [Homepage](https://tung-tung-tung-safong-education.github.io/)
 - [PairWheel](https://tung-tung-tung-safong-education.github.io/pairwheel/)
 - [Circle Reference Visualizer](https://tung-tung-tung-safong-education.github.io/circle-visualizer/)
@@ -74,3 +75,12 @@ The app keeps progress in browser local storage with UGA-specific keys and suppo
 Questions preserve captured source content. Human topic classifications, revised classifications and AI tags remain labelled; difficulty ratings are judged. Printed solutions are available for 315 questions; the 100 questions from 1995–96 to 2004–05 retain the explicit missing-solution notice. This is a practice and worksheet bank; automatic mock-test marking is not implemented.
 
 Saved practice and sets use the `hkmobank:` namespace and `HKMOSET:` set codes. Data saved on another browser origin does not transfer automatically; use the app's practice backup/restore and set-code controls. Only the standalone release HTML is published; original PDFs, build sources and local QA artifacts remain outside this repository.
+
+
+## M2 Knowledge Cards — 26 October 2026
+
+`docs/m2-knowledge-cards/index.html` is the separate M2 student site. It contains only S5 Chapter 7, Indefinite Integration:98 visible cards,12 key ideas,8 Quick Practice groups and63 refreshing checks on62 cards. Complete worked trigonometric substitutions and other integration methods are included. Core Mathematics and S2 Knowledge Cards retain their existing routes and files.
+
+Generate the release from the approved dedicated M2 build with `python3 cards/build_public.py --source cards/Knowledge_Cards.M2.html --chapters m2c7 --out cards/public-m2/index.html`. Only M2 Chapter7 data and its generator module are included; teacher/debug mode is disabled even with old saved preferences. Student progress stays in the browser. KaTeX loads from jsDelivr. Textbook scans, project sources and local QA artifacts are not published.
+
+Public HTML SHA-256: `6f69ff4dc994069f5e11229dbd1676ee0ff8d790117d52c003fa8cfabbefa1cc`. Update the source project first, regenerate the restricted export, and copy only that export into this route.
