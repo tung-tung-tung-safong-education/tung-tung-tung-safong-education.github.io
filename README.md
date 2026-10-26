@@ -84,3 +84,8 @@ Saved practice and sets use the `hkmobank:` namespace and `HKMOSET:` set codes. 
 Generate the release from the approved dedicated M2 build with `python3 cards/build_public.py --source cards/Knowledge_Cards.M2.html --chapters m2c7 --out cards/public-m2/index.html`. Only M2 Chapter7 data and its generator module are included; teacher/debug mode is disabled even with old saved preferences. Student progress stays in the browser. KaTeX loads from jsDelivr. Textbook scans, project sources and local QA artifacts are not published.
 
 Public HTML SHA-256: `6f69ff4dc994069f5e11229dbd1676ee0ff8d790117d52c003fa8cfabbefa1cc`. Update the source project first, regenerate the restricted export, and copy only that export into this route.
+
+
+## S5 Knowledge Cards and Quiz — 26 October 2026
+
+The existing `docs/knowledge-cards/index.html` now offers timed quizzes for S5 Chapter 3 (55 checks) and Chapter 4 (43 checks), with chapter/topic selection, mixed samples, exact revision-card links and retry of missed checks. The scoped export contains only these two chapters. Mathematical audits cover all 98 attached checks; timing remains an editorial estimate. Topics without attached checks are explicitly unassessed. Existing chapter maps and drill guides remain available.
