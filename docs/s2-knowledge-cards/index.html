@@ -893,6 +893,21 @@
   .qz-footer .qz-status { font-size: 14px; flex-basis: 100%; }
 }
 
+
+/* Shared checks: selected integrated panel/tree presentation. */
+.summary-start{display:flex;align-items:center;gap:6px;min-height:36px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#eef3fb;color:var(--navy);font:13px/1.3 var(--sans);text-align:left;cursor:pointer;max-width:100%}
+.summary-start .st{position:static;margin:0;width:15px;height:15px;flex:none;background:none}
+.summary-start .summary-label{min-width:0;text-wrap:balance}.summary-start small{display:block;font-size:11px;color:var(--navy-soft);margin-top:2px}
+.summary-start:hover{background:#e1eafa;border-color:var(--navy-soft)}
+.summary-start:focus-visible,.map-open:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.tree .summary-start{margin:4px 0 7px 8px;width:calc(100% - 8px)}
+.mnode:has(>.summary-start){padding:0;gap:0;overflow:visible}
+.map-open{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:9px 14px 10px;border:0;border-radius:inherit;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.mnode.root .map-open{padding:12px 16px}
+.mnode>.summary-start{align-self:stretch;margin:0;border:0;border-top:1px solid var(--line);border-radius:0 0 11px 11px;padding:7px 10px}
+.mnode>.summary-start .st{position:static;right:auto;top:auto;width:15px;height:15px;background:none;border-radius:0}
+.mnode>.summary-start small{display:inline;margin:0 0 0 5px}
+.check-scope{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82em;line-height:1.4;margin:8px 0 14px;text-align:left}.check-scope span{color:#31435f}
 </style>
 <style>:where(.kc-s2-animation-card) .kc-manim-host,:where(.kc-s2-animation-card) .vis.manim-web{position:relative;min-height:0;min-width:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:#f5f5f5;overflow:hidden;border-radius:8px}:where(.kc-s2-animation-card) .kc-manim-surface{flex:0 1 auto;min-height:0;max-width:100%;position:relative;background:#000}:where(.kc-s2-animation-card) .kc-manim-surface canvas{display:block;max-width:100%;max-height:100%}:where(.kc-s2-animation-card) .kc-manim-controls{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;width:100%;padding:8px 12px;flex:0 0 auto;background:#080b0e;color:#b8c1cc;font:16px Georgia,"Times New Roman",serif}:where(.kc-s2-animation-card) .kc-manim-controls button,:where(.kc-s2-animation-card) .kc-manim-controls select{min-height:44px;max-width:230px;padding:7px 13px;border:1px solid #303943;border-radius:5px;background:#080b0e;color:#f5f5f5;font:inherit;cursor:pointer}:where(.kc-s2-animation-card) .kc-manim-controls button:first-child{background:#ffff00;color:#000;border-color:#ffff00}:where(.kc-s2-animation-card) .kc-manim-controls :is(button,select):focus-visible{outline:2px solid #58c4dd;outline-offset:3px}:where(.kc-s2-animation-card) .kc-manim-controls :is(button,select):hover{border-color:#58c4dd}:where(.kc-s2-animation-card) .kc-manim-status{font-size:14px;min-width:100px;text-align:center}
 .card.big.kc-s2-animation-card{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
@@ -6928,8 +6943,8 @@ function cardEl(c, ch, big, item) {
     const band = el("button", "ckband" + (mid ? "" : st === "secure" ? " secure" : st === "slip" ? " slip" : "") + (state.arrived ? " arrive" : ""));
     band.appendChild(icon(st === "secure" && !mid ? "check" : "ask", "qi"));
     const tx = el("span", "ckt");
-    tx.appendChild(el("b", "", mid ? "Quick check in progress" : st === "secure" ? "Secure" : st === "slip" ? "Slipped last time" : "Quick check"));
-    tx.appendChild(el("span", "", mid ? `${run.results.length} of ${run.items.length} answered` : `${n} short question${n === 1 ? "" : "s"}`));
+    tx.appendChild(el("b", "", mid ? "Quick check in progress" : st === "secure" ? "Secure" : st === "slip" ? "Slipped last time" : isSummaryCheck(ch,c.id) ? "Summary challenge" : "Quick check"));
+    tx.appendChild(el("span", "", mid ? `${run.results.length} of ${run.items.length} answered` : isSummaryCheck(ch,c.id) ? `${summaryNeeds(ch,c.id).length} cards brought together` : `${n} short question${n === 1 ? "" : "s"}`));
     band.appendChild(tx);
     band.appendChild(el("span", "go", mid ? "Continue" : st ? "Check again" : "Start"));
     band.onclick = () => openCheck(ch, c.id, false);
@@ -7702,6 +7717,35 @@ function roleTag(role, cls) {
   const t = el("span", cls + (role === "warning" ? " trap" : role === "why" ? " why" : role === "joins" ? " join" : ""), ROLE[role] || "");
   return t;
 }
+function summaryNeeds(ch, id) {
+  const slots=(ch.checks || {})[id] || [];
+  return [...new Set(slots.flatMap(s => s.needs || [id]))];
+}
+function isSummaryCheck(ch, id) { return summaryNeeds(ch,id).length > 1; }
+function summaryBranches(ch, tree) {
+  const ids=new Set(tree.order.map(n=>n.c.id));
+  return tree.order.filter(n=>isSummaryCheck(ch,n.c.id)).map(n=>({owner:n.c,needs:summaryNeeds(ch,n.c.id)}));
+}
+// Place after all covered material in the tree's reading order, even when the owner comes earlier.
+function summaryAnchors(ch, tree) {
+  const anchors=new Map();
+  for(const branch of summaryBranches(ch,tree)){
+    const covered=new Set(branch.needs);
+    const anchor=tree.order.filter(n=>covered.has(n.c.id)).at(-1);
+    if(anchor){if(!anchors.has(anchor.c.id))anchors.set(anchor.c.id,[]);anchors.get(anchor.c.id).push(branch);}
+  }
+  return anchors;
+}
+function summaryActionEl(ch, {owner,needs}) {
+  const button=el("button","summary-start");button.type="button";button.dataset.checkOwner=owner.id;
+  const label=el("span","summary-label","Summary challenge");label.appendChild(el("small","",`${needs.length} cards`));
+  button.append(stateIcon(cardState(ch,owner.id)||waitMark(ch,owner)||"bulb"),label);
+  const scope=needs.map(id=>plain(shortOf(ch.cards.find(c=>c.id===id)))).join("; ");
+  button.title=`Covers: ${scope}`;button.setAttribute("aria-label",`Summary challenge across ${needs.length} cards. Covers: ${scope}`);
+  button.onclick=e=>{e.stopPropagation();jumpTo(owner.id);openCheck(ch,owner.id,false);};
+  return button;
+}
+
 function railEl(item) {
   const { tree, k } = item;
   const outer = el("aside", "rail");
@@ -7720,6 +7764,7 @@ function railEl(item) {
   const tomap = el("button", "tomap", "See the whole tree");
   tomap.onclick = () => jumpTo("map-" + k.id);
   rail.appendChild(tomap);
+  const summaries=summaryAnchors(DATA[state.ch],tree);
   const pathIds = new Set(ancestors(item.node).map(n => n.c.id));
   const rec = recLoad(DATA[state.ch]);
   const nodeEl = n => {
@@ -7730,12 +7775,13 @@ function railEl(item) {
     if (n.c.role) b.appendChild(roleTag(n.c.role, "role"));
     else if (n.joins && n.joins.length) { b.appendChild(roleTag("joins", "role")); li.classList.add("join"); }
     b.appendChild(rich("span", "lab", shortOf(n.c)));
-    const st = cardState(DATA[state.ch], n.c.id, rec) || waitMark(DATA[state.ch], n.c);
+    const st = isSummaryCheck(DATA[state.ch],n.c.id) ? "" : cardState(DATA[state.ch], n.c.id, rec) || waitMark(DATA[state.ch], n.c);
     if (st) b.appendChild(stateIcon(st));
     else if (state.seen.has(n.c.id) && n !== item.node) b.appendChild(icon("seen", "seen"));
     b.onclick = () => jumpTo(n.c.id);
     if (n === item.node) b.setAttribute("aria-current", "true");
     li.appendChild(b);
+    for(const branch of summaries.get(n.c.id)||[])li.appendChild(summaryActionEl(DATA[state.ch],branch));
     if (n.kids.length) {
       const ol = el("ol");
       n.kids.forEach(m => ol.appendChild(nodeEl(m)));
@@ -7774,6 +7820,7 @@ function mapSlideEl(item, host) {
   const map = el("div", "tmap");
   wrap.appendChild(map);
   sec.appendChild(wrap);
+  const summaries=summaryAnchors(DATA[state.ch],tree);
   sec.appendChild(el("p", "maphint", "Tap any branch to open it, or press Next to start at the root."));
 
   // Rows: each leaf takes a row; a parent sits level with the middle of its children.
@@ -7825,18 +7872,24 @@ function mapSlideEl(item, host) {
     const under = m => joined.has(m) || m.kids.some(under);
     const tops = tree.roots.filter(m => !(m.joins && m.joins.length));
     const feeds = !n.parent && !(n.joins && n.joins.length) && under(n) && (!n.kids.length || tops.every(under));
-    const b = el("button", "mnode" + (!n.parent && !feeds ? " root" : "") + (n.joins && n.joins.length ? " join" : ""));
+    const challenges=summaries.get(n.c.id)||[];
+    const b = el(challenges.length ? "div" : "button", "mnode" + (!n.parent && !feeds ? " root" : "") + (n.joins && n.joins.length ? " join" : ""));
     if (n.c.role) b.appendChild(roleTag(n.c.role, "role"));
     else if (n.joins && n.joins.length) b.appendChild(roleTag("joins", "role"));
     b.appendChild(rich("span", "", shortOf(n.c)));
-    const st = cardState(DATA[state.ch], n.c.id, recMap) || waitMark(DATA[state.ch], n.c);
+    const st = isSummaryCheck(DATA[state.ch],n.c.id) ? "" : cardState(DATA[state.ch], n.c.id, recMap) || waitMark(DATA[state.ch], n.c);
     if (st) b.appendChild(stateIcon(st));
     else if (state.seen.has(n.c.id)) b.appendChild(icon("seen", "seen"));
     b.style.left = ((n.x0 || 0) + n.depth * (COL + GAP)) + "px";
     b.style.top = (n.row * ROW + ROW / 2) + "px";
     b.style.maxWidth = COL + "px";
     b.style.transitionDelay = (n.depth * 110) + "ms";
-    b.onclick = () => jumpTo(n.c.id);
+    if(challenges.length){
+      const open=el("button","map-open");open.type="button";
+      while(b.firstChild)open.appendChild(b.firstChild);
+      open.onclick=()=>jumpTo(n.c.id);b.appendChild(open);
+      challenges.forEach(branch=>b.appendChild(summaryActionEl(DATA[state.ch],branch)));
+    }else b.onclick = () => jumpTo(n.c.id);
     map.appendChild(b);
     els.set(n, b);
   });
@@ -9234,7 +9287,7 @@ function openCheck(ch, id, fresh) {
 function cardCheckEl(c, ch) {
   const a = el("article", "card big checking");
   const row = el("div", "ctitle");
-  row.appendChild(rich("h3", "", c.title || ""));
+  row.appendChild(rich("h3", "", isSummaryCheck(ch,c.id) ? "Summary challenge" : c.title || ""));
   const tools = el("div", "ck-tools");
   const fresh = el("button", "ck-fresh", "New questions");
   fresh.onclick = () => { state.cardCheck = runFor(ch, c.id, true); fillCheck(a, c, ch); };
@@ -9244,6 +9297,11 @@ function cardCheckEl(c, ch) {
   tools.append(fresh, back);
   row.appendChild(tools);
   a.appendChild(row);
+  if(isSummaryCheck(ch,c.id)){
+    const scope=el("div","check-scope");scope.appendChild(el("strong","","This challenge brings together:"));
+    for(const id of summaryNeeds(ch,c.id)){const source=ch.cards.find(c=>c.id===id);if(source)scope.appendChild(rich("span","",shortOf(source)));}
+    a.appendChild(scope);
+  }
   a.appendChild(el("div", "ck-dots"));
   a.appendChild(el("div", "ck-body"));
   fillCheck(a, c, ch);
