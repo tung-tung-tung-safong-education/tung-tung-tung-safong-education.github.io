@@ -1,0 +1,52 @@
+.stage:has(>.kc-video-card)>.card.big.kc-video-card{display:flex;flex-direction:column;flex:1 1 0!important;height:auto!important;min-height:0;max-height:none!important}
+.stage:has(>.kc-video-card)>.branchpanel{display:none!important}
+.card.kc-video-card .cbody{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}
+.card.kc-video-card .statement:empty{display:none}
+.kc-substitution-video{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1;background:#000;border-radius:8px;overflow:hidden;position:relative}
+.kc-video-scene{flex:1 1 0;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.kc-video-scene video{display:block;width:100%;height:100%;min-height:0;object-fit:contain;background:#000}
+.kc-video-steps{flex:none;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;padding:4px 10px 8px;background:#000;color:#f5f5f5}
+.kc-video-steps button,.kc-video-steps select{font:14px/1.2 system-ui,sans-serif;min-height:44px;border:1px solid #555;border-radius:5px;background:#111;color:#fff;padding:6px 10px;cursor:pointer}
+.kc-video-steps .kc-video-stage{min-width:0;max-width:100%;flex:0 1 280px}
+.kc-video-speed{display:flex;align-items:center;gap:6px;font:14px/1.2 system-ui,sans-serif;white-space:nowrap}
+.kc-video-speed select{min-width:72px}
+.kc-video-timeline{flex:none;display:flex;align-items:center;gap:12px;padding:0 12px;background:#000;color:#b8c1cc;min-height:44px}
+.kc-video-timeline input{flex:1;min-width:0;min-height:44px;margin:0;accent-color:#58c4dd;touch-action:none;cursor:pointer}
+.kc-video-time{font:12px/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kc-substitution-video :is(button,select,input):focus-visible{outline:2px solid #58c4dd;outline-offset:2px}
+.kc-video-status:empty{display:none}
+.kc-video-status{flex:none;color:#f5f5f5;background:#000;padding:4px 12px;font:13px/1.3 system-ui,sans-serif}
+.card:not(.big) .kc-video-scene{flex-basis:180px;min-height:180px}
+@media(max-width:520px){.kc-video-steps{gap:5px;padding:2px 6px 6px}.kc-video-steps .kc-video-stage{flex:1 1 180px}.kc-video-steps button,.kc-video-steps select{font-size:12px;padding-inline:8px}.kc-video-speed{font-size:12px}.kc-video-timeline{gap:6px;padding-inline:8px}}
+.kc-video-scene svg{display:block;width:100%;height:100%;overflow:hidden;background:#000}
+/* Short landscape windows retain a usable scene and scroll inside the card. */
+@media(max-height:540px){
+ .stage>.card.big:is(.kc-manim-card,.kc-video-card){overflow-y:auto!important;overscroll-behavior:contain}
+ .card.big:is(.kc-manim-card,.kc-video-card) .cbody{flex:none!important;min-height:320px!important;overflow:visible!important}
+ .card.big:is(.kc-manim-card,.kc-video-card) :is(.vis.manim-web,.kc-vector-host){flex:none!important;height:320px!important;min-height:320px!important}
+}
+/* Existing manim-web cards use the same full-width, touch-friendly timeline. */
+.kc-manim-host .kc-manim-timeline{display:flex;align-items:center;gap:12px;flex:none;width:100%;min-height:44px;padding:0 12px;background:#080b0e}
+.kc-manim-host .kc-manim-timeline input{flex:1;min-width:0;min-height:44px;margin:0;accent-color:#58c4dd;touch-action:none}
+.kc-manim-host .kc-manim-time{flex:none;min-width:76px;font:12px/1.2 system-ui,sans-serif;color:#d6e2ed;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kc-manim-host .kc-manim-controls{font:14px/1.2 system-ui,sans-serif;gap:6px 10px;padding:4px 10px 8px}
+.kc-manim-host[data-engine] .kc-manim-status{display:none}
+.kc-animation-fullscreen{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;border:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow:hidden;background:#000;color:#f5f5f5}
+.kc-animation-fullscreen[open]{display:flex;flex-direction:column}
+.kc-animation-fullscreen::backdrop{background:#000}
+.kc-animation-fullscreen>:is(.kc-vector-host,.vis.manim-web){flex:1 1 0!important;min-height:0!important;width:100%!important;height:100%!important;margin:0!important;border-radius:0!important}
+.kc-animation-fullscreen .kc-manim-controls{flex-shrink:0}
+/* Shared operational panel for every embedded Manim scene. */
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-controls,.kc-video-steps){display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:6px 10px!important;padding:4px 10px 8px!important;background:#080b0e!important;color:#eef2f6!important;font:14px/1.2 system-ui,sans-serif!important;width:100%!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-controls,.kc-video-steps) :is(button,select){min-height:44px!important;max-width:100%!important;margin:0!important;padding:6px 12px!important;border:1px solid #46505b!important;border-radius:6px!important;background:#121820!important;color:#f5f5f5!important;font:14px/1.2 system-ui,sans-serif!important;cursor:pointer}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-controls,.kc-video-steps) button:hover{background:#202b36!important;border-color:#58c4dd!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-controls,.kc-video-steps)>select{flex:0 1 280px!important;min-width:0!important;width:280px!important}
+:is(.kc-manim-host,.kc-vector-host) .kc-video-speed{display:flex!important;align-items:center!important;gap:6px!important;font:14px/1.2 system-ui,sans-serif!important;white-space:nowrap!important}
+:is(.kc-manim-host,.kc-vector-host) .kc-video-speed select{width:76px!important;min-width:76px!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-timeline,.kc-video-timeline){display:flex!important;align-items:center!important;gap:12px!important;flex:none!important;width:100%!important;min-height:44px!important;padding:0 12px!important;background:#080b0e!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-timeline,.kc-video-timeline) input{flex:1!important;width:auto!important;min-width:0!important;min-height:44px!important;margin:0!important;accent-color:#58c4dd!important;touch-action:none!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-time,.kc-video-time){flex:none!important;min-width:76px!important;color:#d6e2ed!important;font:12px/1.2 system-ui,sans-serif!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important}
+:is(.kc-manim-host,.kc-vector-host) :is(button,select,input):focus-visible{outline:2px solid #58c4dd!important;outline-offset:2px!important}
+.kc-manim-host{justify-content:flex-start!important}
+.kc-manim-host:not(.kc-solutions)>.kc-manim-surface{display:flex;align-items:center;justify-content:center;flex:1 1 0!important;height:auto!important}
+:is(.kc-manim-host,.kc-vector-host) :is(.kc-manim-timeline,.kc-video-timeline){margin-top:auto!important}

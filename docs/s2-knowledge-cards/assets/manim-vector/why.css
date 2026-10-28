@@ -1,0 +1,18 @@
+.kc-manim-host,.vis.manim-web{position:relative;min-height:0;min-width:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:#f5f5f5;overflow:hidden;border-radius:8px}
+.kc-manim-surface{flex:0 1 auto;min-height:0;max-width:100%;position:relative;background:#000}
+.kc-manim-surface canvas{display:block;max-width:100%;max-height:100%}
+.kc-manim-controls{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;width:100%;padding:8px 12px;flex:0 0 auto;background:#080b0e;color:#b8c1cc;font:16px Georgia,"Times New Roman",serif}
+.kc-manim-controls button,.kc-manim-controls select{min-height:44px;max-width:230px;padding:7px 13px;border:1px solid #303943;border-radius:5px;background:#080b0e;color:#f5f5f5;font:inherit;cursor:pointer}
+.kc-manim-controls button:first-child{background:#ffff00;color:#000;border-color:#ffff00}
+.kc-manim-controls :is(button,select):focus-visible{outline:2px solid #58c4dd;outline-offset:3px}
+.kc-manim-controls :is(button,select):hover{border-color:#58c4dd}
+.kc-manim-status{font-size:14px;min-width:100px;text-align:center}
+.card.big.kc-manim-card{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
+.card.big.kc-manim-card .cbody{display:flex!important;flex-direction:column!important;flex:1 1 0!important;min-height:0!important;gap:0!important}
+.kc-manim-card .statement:empty,.kc-manim-card .branchpanel{display:none!important}
+.kc-manim-card .vis.manim-web{flex:1 1 0!important;margin:0!important;max-width:100%!important}
+.kc-manim-card .box.mem{display:none}
+.kc-manim-card h3{font-size:calc(26px * var(--fit,1));margin-bottom:12px}
+@media(max-width:700px){.kc-manim-controls{gap:6px;font-size:14px;padding:6px}.kc-manim-status{display:none}.kc-manim-controls select{max-width:190px}.kc-manim-card h3{font-size:22px}}
+
+.kc-manim-controls .kc-video-speed{display:flex;align-items:center;gap:6px;white-space:nowrap}.kc-manim-timeline input{touch-action:none}
