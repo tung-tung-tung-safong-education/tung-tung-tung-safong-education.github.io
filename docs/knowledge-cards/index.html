@@ -791,9 +791,13 @@
 .qz-footer { flex: none; border-top: 1px solid var(--line); padding: 12px 0 0; }
 .qz-footer p { margin: 0; }
 .qz-summary { font-weight: 600; }
-.qz-size-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
-.qz-size-row label { display: flex; gap: 12px; align-items: center; font-weight: 600; }
-.qz-size-row input { width: 76px; height: 44px; padding: 8px; border: 1px solid var(--edge); border-radius: 8px; background: var(--card); color: var(--ink); }
+.qz-size-row { display: grid; gap: 4px; width: min(100%, 520px); margin: 20px 0; }
+.qz-size-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.qz-size-row label { font-weight: 600; }
+.qz-size-value { color: var(--navy); font-weight: 700; font-variant-numeric: tabular-nums; }
+.qz-size-row input[type="range"] { display: block; width: 100%; height: 44px; margin: 0; padding: 0; cursor: pointer; }
+.qz-size-row input[type="range"]:disabled { cursor: default; }
+.qz-size-bounds { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
 .qz-size-row p { margin: 0; }
 .qz-form-choice { display: flex; align-items: center; gap: 12px; font-weight: 600; margin: 18px 0; }
 .qz-form-choice select { min-height: 44px; padding: 8px 32px 8px 12px; border: 1px solid var(--edge); border-radius: 8px; background: var(--card); color: var(--navy); }
@@ -3663,18 +3667,33 @@ function quizSetupEl() {
   const selectors = [], topicBoxes = [];
   let sampled = [], pool = [];
   const sizeRow = el("div", "qz-size-row"), sizeLabel = el("label", "", "Number of questions"), size = el("input");
-  size.type = "number"; size.min = "1"; size.step = "1"; size.setAttribute("aria-label", "Number of questions");
-  sizeLabel.append(size); sizeRow.append(sizeLabel, el("p", "qz-muted", "A balanced random sample across your selected topics.")); scroll.append(sizeRow);
+  size.type = "range"; size.step = "1"; size.id = "quiz-question-count";
+  sizeLabel.htmlFor = size.id;
+  const sizeHeader = el("div", "qz-size-header"), sizeValue = el("output", "qz-size-value");
+  sizeValue.setAttribute("for", size.id);
+  const sizeBounds = el("div", "qz-size-bounds"), sizeMin = el("span"), sizeMax = el("span");
+  sizeBounds.setAttribute("aria-hidden", "true"); sizeBounds.append(sizeMin, sizeMax);
+  const sizeHint = el("p", "qz-muted"); sizeHint.id = "quiz-question-count-help";
+  size.setAttribute("aria-describedby", sizeHint.id);
+  sizeHeader.append(sizeLabel, sizeValue); sizeRow.append(sizeHeader, size, sizeBounds, sizeHint); scroll.append(sizeRow);
   const summary = el("p", "qz-summary"); summary.setAttribute("aria-live", "polite");
   const start = quizButton(quizRun && !quizRun.finished ? "Replace quiz and start" : "Start quiz", () => {
     quizStart(sampled, [...new Set(pool.map(s => s.chKey))]);
   }, true);
-  const update = (keepInput = false) => {
+  const update = () => {
     state.quizSelection = [...selected];
     pool = chapters.flatMap(ch => quizSlots(ch)).filter(s => selected.has(`${s.chKey}/${s.topic}`));
-    const count = Math.min(state.quizSize || 10, pool.length);
-    size.max = String(Math.max(1, pool.length)); size.disabled = !pool.length;
-    if (!keepInput) size.value = String(count || 1);
+    const minimum = Math.min(10, pool.length);
+    const count = Math.max(minimum, Math.min(state.quizSize || 10, pool.length));
+    size.min = String(minimum); size.max = String(pool.length); size.disabled = pool.length <= 10;
+    size.value = String(count);
+    if (pool.length) state.quizSize = count;
+    sizeValue.value = `${count} ${count === 1 ? "question" : "questions"}`;
+    size.setAttribute("aria-valuetext", `${count} of ${pool.length} available questions`);
+    sizeMin.textContent = String(minimum); sizeMax.textContent = String(pool.length);
+    sizeHint.textContent = !pool.length ? "Select topics to choose the number of questions."
+      : pool.length <= 10 ? `All ${pool.length} available questions are included.`
+      : "A balanced random sample across your selected topics.";
     sampled = quizSample(pool, count);
     const seconds = sampled.reduce((sum, s) => sum + s.profile.seconds, 0);
     const covered = new Set(sampled.map(s => `${s.chKey}/${s.topic}`)).size;
@@ -3689,8 +3708,7 @@ function quizSetupEl() {
   };
   size.oninput = () => {
     const count = Number(size.value);
-    if (!Number.isInteger(count) || count < 1 || count > pool.length) { start.disabled = true; summary.textContent = `Choose 1 to ${pool.length} questions.`; return; }
-    state.quizSize = count; update(true);
+    state.quizSize = count; update();
   };
   if (chapters.length > 1) {
     const actions = el("div", "qz-scope-actions");

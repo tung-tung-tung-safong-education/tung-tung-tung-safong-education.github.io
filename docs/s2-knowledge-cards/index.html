@@ -784,9 +784,13 @@
 .qz-footer { flex: none; border-top: 1px solid var(--line); padding: 12px 0 0; }
 .qz-footer p { margin: 0; }
 .qz-summary { font-weight: 600; }
-.qz-size-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
-.qz-size-row label { display: flex; gap: 12px; align-items: center; font-weight: 600; }
-.qz-size-row input { width: 76px; height: 44px; padding: 8px; border: 1px solid var(--edge); border-radius: 8px; background: var(--card); color: var(--ink); }
+.qz-size-row { display: grid; gap: 4px; width: min(100%, 520px); margin: 20px 0; }
+.qz-size-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.qz-size-row label { font-weight: 600; }
+.qz-size-value { color: var(--navy); font-weight: 700; font-variant-numeric: tabular-nums; }
+.qz-size-row input[type="range"] { display: block; width: 100%; height: 44px; margin: 0; padding: 0; cursor: pointer; }
+.qz-size-row input[type="range"]:disabled { cursor: default; }
+.qz-size-bounds { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
 .qz-size-row p { margin: 0; }
 .qz-meta { font-size: 15px; color: var(--muted); }
 .qz-clock { flex: none; display: flex; flex-direction: column; gap: 10px; }
@@ -4316,25 +4320,48 @@ function quizSample(slots, count) {
 function quizSetupEl() {
   const sec = quizShell("Set up a quiz");
   const scroll = el("div", "qz-scroll"); sec.append(scroll);
-  const chapters = quizChapters();
+  const available = quizChapters(), forms = [...new Set(available.map(formOf))];
+  const chosenForm = forms.includes(state.quizForm) ? state.quizForm : forms[0];
+  const chapters = available.filter(ch => formOf(ch) === chosenForm);
   scroll.append(el("p", "qz-lede", "Choose chapters and topics. Find out what to revise next."),
-    el("p", "qz-muted", `The pilot covers ${chapters.map(ch => `${formOf(ch)} Chapter ${ch.number}`).join(", ") || "no chapters yet"}. Each question is copied from its existing checks, with its own time limit.`));
-  const selected = new Set(state.quizSelection || quizChapters().flatMap(ch => quizSlots(ch).map(s => `${ch.key}/${s.topic}`)));
-  const selectors = [];
+    el("p", "qz-muted", chapters.length === 1 ? `The quiz covers ${formOf(chapters[0])} Chapter ${chapters[0].number}. Each question uses its own time limit.` : "Choose a chapter range. Questions come directly from the existing checks, each with its own time limit."));
+  if (forms.length > 1) {
+    const label = el("label", "qz-form-choice", "Form"), select = el("select");
+    forms.forEach(form => select.append(new Option(form, form))); select.value = chosenForm;
+    select.onchange = () => { state.quizForm = select.value; state.quizSelection = null; renderBody(); };
+    label.append(select); scroll.append(label);
+  }
+  const selected = new Set(state.quizSelection || chapters.flatMap(ch => quizSlots(ch).map(s => `${ch.key}/${s.topic}`)));
+  const selectors = [], topicBoxes = [];
   let sampled = [], pool = [];
   const sizeRow = el("div", "qz-size-row"), sizeLabel = el("label", "", "Number of questions"), size = el("input");
-  size.type = "number"; size.min = "1"; size.step = "1"; size.setAttribute("aria-label", "Number of questions");
-  sizeLabel.append(size); sizeRow.append(sizeLabel, el("p", "qz-muted", "A balanced random sample across your selected topics.")); scroll.append(sizeRow);
+  size.type = "range"; size.step = "1"; size.id = "quiz-question-count";
+  sizeLabel.htmlFor = size.id;
+  const sizeHeader = el("div", "qz-size-header"), sizeValue = el("output", "qz-size-value");
+  sizeValue.setAttribute("for", size.id);
+  const sizeBounds = el("div", "qz-size-bounds"), sizeMin = el("span"), sizeMax = el("span");
+  sizeBounds.setAttribute("aria-hidden", "true"); sizeBounds.append(sizeMin, sizeMax);
+  const sizeHint = el("p", "qz-muted"); sizeHint.id = "quiz-question-count-help";
+  size.setAttribute("aria-describedby", sizeHint.id);
+  sizeHeader.append(sizeLabel, sizeValue); sizeRow.append(sizeHeader, size, sizeBounds, sizeHint); scroll.append(sizeRow);
   const summary = el("p", "qz-summary"); summary.setAttribute("aria-live", "polite");
   const start = quizButton(quizRun && !quizRun.finished ? "Replace quiz and start" : "Start quiz", () => {
     quizStart(sampled, [...new Set(pool.map(s => s.chKey))]);
   }, true);
-  const update = (keepInput = false) => {
+  const update = () => {
     state.quizSelection = [...selected];
     pool = chapters.flatMap(ch => quizSlots(ch)).filter(s => selected.has(`${s.chKey}/${s.topic}`));
-    const count = Math.min(state.quizSize || 10, pool.length);
-    size.max = String(Math.max(1, pool.length)); size.disabled = !pool.length;
-    if (!keepInput) size.value = String(count || 1);
+    const minimum = Math.min(10, pool.length);
+    const count = Math.max(minimum, Math.min(state.quizSize || 10, pool.length));
+    size.min = String(minimum); size.max = String(pool.length); size.disabled = pool.length <= 10;
+    size.value = String(count);
+    if (pool.length) state.quizSize = count;
+    sizeValue.value = `${count} ${count === 1 ? "question" : "questions"}`;
+    size.setAttribute("aria-valuetext", `${count} of ${pool.length} available questions`);
+    sizeMin.textContent = String(minimum); sizeMax.textContent = String(pool.length);
+    sizeHint.textContent = !pool.length ? "Select topics to choose the number of questions."
+      : pool.length <= 10 ? `All ${pool.length} available questions are included.`
+      : "A balanced random sample across your selected topics.";
     sampled = quizSample(pool, count);
     const seconds = sampled.reduce((sum, s) => sum + s.profile.seconds, 0);
     const covered = new Set(sampled.map(s => `${s.chKey}/${s.topic}`)).size;
@@ -4342,12 +4369,20 @@ function quizSetupEl() {
     summary.textContent = sampled.length ? `${sampled.length} ${sampled.length === 1 ? "question" : "questions"} · ${covered} of ${available} topics · up to ${quizDuration(seconds)}` : "Select at least one topic to start.";
     start.disabled = !sampled.length;
     selectors.forEach(({ box, keys }) => { box.checked = keys.every(k => selected.has(k)); box.indeterminate = !box.checked && keys.some(k => selected.has(k)); });
+    topicBoxes.forEach(({ box, key }) => { box.checked = selected.has(key); });
+    scroll.querySelectorAll('.qz-chapter').forEach((group, index) => {
+      group.querySelector('.qz-topics').hidden = chapters.length > 1 && !selectors[index].keys.some(key => selected.has(key));
+    });
   };
   size.oninput = () => {
     const count = Number(size.value);
-    if (!Number.isInteger(count) || count < 1 || count > pool.length) { start.disabled = true; summary.textContent = `Choose 1 to ${pool.length} questions.`; return; }
-    state.quizSize = count; update(true);
+    state.quizSize = count; update();
   };
+  if (chapters.length > 1) {
+    const actions = el("div", "qz-scope-actions");
+    actions.append(quizButton("Select all chapters", () => { chapters.flatMap(ch => quizSlots(ch)).forEach(s => selected.add(`${s.chKey}/${s.topic}`)); update(); }),
+      quizButton("Clear chapters", () => { selected.clear(); update(); })); scroll.append(actions);
+  }
   chapters.forEach(ch => {
     const slots = quizSlots(ch), topics = ch.keyIdeas.filter(k => slots.some(s => s.topic === k.id));
     const group = el("fieldset", "qz-chapter"), legend = el("legend");
@@ -4358,6 +4393,7 @@ function quizSetupEl() {
     const topicsBox = el("div", "qz-topics");
     topics.forEach(k => {
       const row = el("label", "qz-topic"), box = el("input"); box.type = "checkbox"; box.checked = selected.has(`${ch.key}/${k.id}`);
+      topicBoxes.push({box, key:`${ch.key}/${k.id}`});
       box.onchange = () => { box.checked ? selected.add(`${ch.key}/${k.id}`) : selected.delete(`${ch.key}/${k.id}`); update(); };
       const count = slots.filter(s => s.topic === k.id).length;
       row.append(box, rich("span", "", k.title), el("small", "", `${count} ${count === 1 ? "question" : "questions"}`)); topicsBox.append(row);
