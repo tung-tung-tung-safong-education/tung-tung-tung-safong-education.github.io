@@ -1296,6 +1296,14 @@
 <script src="assets/manim-music/solution-points.music.js?v=c5f648ac3770"></script>
 <script src="assets/manim-vector/algebraic-substitution.vector.js?v=01ede04094d1"></script>
 <script src="assets/manim-vector/elimination.vector.js?v=9ff1700f5260"></script>
+<style id="kc-annotated-workings">
+.qz-question:has(.ck-opts.annotated){container-type:inline-size}
+.ck-opts.annotated{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ck-opts.annotated.annotated-stack{grid-template-columns:minmax(0,1fr)}
+.ck-opts.annotated>.ck-opt>span{display:block;min-width:100%;width:max-content}
+@media (orientation:portrait){@container (max-width:880px){.ck-opts.annotated{grid-template-columns:minmax(0,1fr)}}}
+@media (max-width:700px){.ck-opts.annotated{grid-template-columns:minmax(0,1fr)}}
+</style>
 </head>
 <body>
 <header>
@@ -1390,6 +1398,34 @@ function rich(tag, cls, text) {
   e.innerHTML = richHTML(text);
   return e;
 }
+function annotatedChoiceOverflow(card) {
+  return [...card.querySelectorAll(".ck-opts.annotated .ck-opt")].some(e => e.scrollWidth > e.clientWidth + 1);
+}
+function fitAnnotatedChoices(node) {
+  const fit = () => {
+    if (node !== document && !node.isConnected) return;
+    node.querySelectorAll(".qz-question .ck-opts.annotated").forEach(grid => {
+      const choices = [...grid.querySelectorAll(":scope > .ck-opt")];
+      let scale = 1;
+      choices.forEach(e => {
+        const span = e.querySelector(":scope > span"); if (!span) return;
+        span.style.fontSize = "";
+        const style = getComputedStyle(e), available = e.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const math = span.querySelector(".katex-html");
+        if (math && math.getBoundingClientRect().width > available) scale = Math.min(scale, available / math.getBoundingClientRect().width);
+      });
+      choices.forEach(e => {
+        const span = e.querySelector(":scope > span"); if (!span) return;
+        const base = parseFloat(getComputedStyle(e).fontSize);
+        span.style.fontSize = Math.max(16, base * scale * .99) + "px";
+      });
+    });
+  };
+  fit(); requestAnimationFrame(fit);
+  if (document.fonts && document.fonts.status !== "loaded") document.fonts.ready.then(fit);
+}
+window.addEventListener("resize", () => fitAnnotatedChoices(document));
+
 function typeset(node) {
   if (window.renderMathInElement) {
     // Fractions are shown full-size (as in DSE papers) so they stay readable on a tablet, except inside a
@@ -1402,6 +1438,7 @@ function typeset(node) {
   }
   glueMath(node);
   raggedMath(node);
+  fitAnnotatedChoices(node);
 }
 // An opening bracket before an equation, and a closing bracket or punctuation after it, stay on its line:
 // "(k > 0)" once broke as "(" at the end of one line and "k > 0)" on the next.
@@ -1811,7 +1848,7 @@ function fitCardSize(card) {
     e.getBoundingClientRect().width < +e.dataset.need * (parseFloat(card.style.getPropertyValue("--fit")) || 1) - 1;
   // 1 px of slack (12 Oct 2026): Chrome rounds sizes to 1/64 px, so a figure drawn at exactly its scaled width read as
   // squeezed by 0.01 px and blocked every shrink step; cards that fit at 0.9 fell back to scrolling at the floor.
-  const overflowX = () => !!cb && [...cb.children].some(e => ((!e.classList.contains("vis") || e.classList.contains("table")) && e.scrollWidth > e.clientWidth + 1) || squeezed(e));
+  const overflowX = () => annotatedChoiceOverflow(card) || !!cb && [...cb.children].some(e => ((!e.classList.contains("vis") || e.classList.contains("table")) && e.scrollWidth > e.clientWidth + 1) || squeezed(e));
   const fits = () => card.scrollHeight <= card.clientHeight + 1 && !overflowX();
   card.classList.remove("scrolly");
   if (cb) {
@@ -3617,9 +3654,20 @@ const num = n => `${n}`;
 const js = t => t.replace(/\\text\{[^}]*\}/g, "").replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "(($1)/($2))")
                  .replace(/(\d)\s*([xy(])/g, "$1*$2").replace(/\)\s*\(/g, ")*(").replace(/\)\s*([xy\d])/g, ")*$1");
 // a line: [prefix (words, not tested), left, right]
-const L3 = (pre, l, r) => ({ pre, l, r });
-const workT = lines => `$\\begin{aligned}${lines.map(q => `${q.pre ? q.pre + "\\ " : ""}${q.l} &= ${q.r}`).join(" \\\\ ")}\\end{aligned}$`;
+const L3 = (pre, l, r, tag = "") => ({ pre, l, r, tag });
+const workT = lines => `$\\begin{aligned}${lines.map(q => `${q.pre ? q.pre + "\\ " : ""}${q.l} &= ${q.r}${q.tag ? `\\quad\\text{(${q.tag})}` : ""}`).join(" \\\\ ")}\\end{aligned}$`;
 const stepsOpt = (lines, ok) => ({ label: workT(lines), ok, _t: lines.map(q => [js(q.l), js(q.r)]) });
+// Every simultaneous system starts with a brace and row labels. Working names
+// its source equations; derived labels are separate from executable maths.
+const systemT = (first, second) => `\\begin{cases}${first}\\quad\\text{(1)}\\\\${second}\\quad\\text{(2)}\\end{cases}`;
+const systemMath = (first, second) => `$${systemT(first, second)}$`;
+const from = n => `\\text{From (${n}):}`;
+const into = (value, n) => `${value}\\text{ into (${n}):}`;
+const operation = text => `\\text{${text}:}`;
+const routeOpt = (first, second, lines, ok) => ({
+  ...stepsOpt(lines, ok),
+  label: `$\\begin{gathered}${systemT(first, second)}\\\\${workT(lines).slice(1,-1)}\\end{gathered}$`
+});
 const rat = (n, d) => { if (d < 0) { n = -n; d = -d; } const g = gcd(Math.abs(n), d) || 1; n /= g; d /= g;
                         return d === 1 ? `${n}` : (n < 0 ? `-\\frac{${-n}}{${d}}` : `\\frac{${n}}{${d}}`); };
 
@@ -3723,8 +3771,8 @@ return Object.assign(GEN_SELF, {
   // Card "Remove the brackets after substituting" (with "Substitution leaves one unknown only").
   "subst-form": () => {
     let a, b, m, c, d; do { [a, b] = two(2, 5); m = between(2, 5); c = between(1, 9); d = between(1, 20); } while (new Set([a, b, m, c, d]).size < 5);
-    return { type: "choice", eq: true, prompt: `Substitute $y = ${m}x - ${c}$ into $${a}x + ${b}y = ${d}$. We get …`,
-             why: `Put the whole expression for $y$ in brackets in place of $y$: $${b}(${m}x - ${c})$.`,
+    return { type: "choice", eq: true, show: systemT(`y = ${m}x - ${c}`, `${a}x + ${b}y = ${d}`), prompt: "Substitute (1) into (2). We get …",
+             why: `Substitute (1) into (2): put the whole expression for $y$ in brackets, giving $${a}x+${b}(${m}x-${c})=${d}$.`,
              options: shuffle([
                { label: `$${a}x + ${b}(${m}x - ${c}) = ${d}$`, ok: true },
                { label: `$${a}x + ${b} \\times ${m}x - ${c} = ${d}$`, ok: false, note: "the expression needs brackets" },
@@ -3736,11 +3784,11 @@ return Object.assign(GEN_SELF, {
   "add-or-sub": () => {
     const make = (sg1, sg2) => {
       let a, d, b, c, e; do { [a, d] = two(1, 6); b = between(2, 7); c = between(1, 20); e = between(1, 20); } while (b === a || b === d || c === e || [a,d].some(v => (v === 3 && [2,4].includes(b)) || (v === 5 && b === 2)));
-      return `$\\begin{cases}${term(a, "x")} ${plus(sg1 * b, "y")} = ${c}\\\\${term(d, "x")} ${plus(sg2 * b, "y")} = ${e}\\end{cases}$`;
+      return systemMath(`${term(a, "x")} ${plus(sg1 * b, "y")} = ${c}`, `${term(d, "x")} ${plus(sg2 * b, "y")} = ${e}`);
     };
     const add = [{ label: make(1, -1), note: "opposite signs" }, { label: make(-1, 1), note: "opposite signs" }];
     const sub = [{ label: make(1, 1), note: "the same sign" }, { label: make(-1, -1), note: "the same sign" }];
-    return { type: "sort", prompt: "To eliminate $y$, do we add or subtract the two equations?", chips: ["Add", "Subtract"],
+    return { type: "sort", prompt: "To eliminate $y$, which operation do we use?", chips: ["Add (1) + (2)", "Subtract (1) − (2)"],
              why: "The coefficients of $y$ are equal in magnitude. If they are opposite in sign, add. If they have the same sign, subtract.",
              rows: sortRows(add, sub) };
   },
@@ -3766,15 +3814,16 @@ return Object.assign(GEN_SELF, {
     do { p = between(1, 6); q = between(1, 6); b = between(2, 5); a = p + q; c = b * p - q;
          X1 = (c - a) / (b - 1); X2 = (c + a) / (b - 1); }
     while (c < 1 || p === q || !Number.isInteger(X1) || !Number.isInteger(X2) || X1 === p || X2 === p || (a === 7 && b === 3 && c === 5));
-    const S1 = L3("", "y", `${a} - x`), S2 = L3("", `${b}x - (${a} - x)`, `${c}`);
-    const R = [S1, S2, L3("", "x", `${p}`), L3("", "y", `${q}`)];
-    const W1 = [L3("", "y", `x - ${a}`), L3("", `${b}x - (x - ${a})`, `${c}`), L3("", "x", `${X1}`), L3("", "y", `${X1 - a}`)];   // the sign in Step 1
-    const W2 = [S1, L3("", `${b}x - ${a} - x`, `${c}`), L3("", "x", `${X2}`), L3("", "y", `${a - X2}`)];                             // the brackets
-    const W3 = [S1, S2, L3("", "x", `${p}`), L3("", "y", `${a + p}`)];                                                       // back into (1)
-    return { type: "choice", eq: true, show: `\\begin{cases}\\text{(1) } x + y = ${a}\\\\\\text{(2) } ${b}x - y = ${c}\\end{cases}`,
+    const S1 = L3(from(1), "y", `${a} - x`, 3), S2 = L3(operation('(3) into (2)'), `${b}x - (${a} - x)`, `${c}`);
+    const tail = (X,Y) => [L3(into(`x=${X}`,1), "y", `${a} - (${X})`), L3("", "y", `${Y}`)];
+    const R = [S1, S2, L3("", "x", `${p}`), ...tail(p,q)];
+    const W1 = [L3(from(1), "y", `x - ${a}`,3), L3(operation('(3) into (2)'), `${b}x - (x - ${a})`, `${c}`), L3("", "x", `${X1}`), L3(into(`x=${X1}`,3),'y',`${X1}-${a}`),L3('','y',`${X1-a}`)];
+    const W2 = [S1, L3(operation('(3) into (2)'), `${b}x - ${a} - x`, `${c}`), L3("", "x", `${X2}`), ...tail(X2,a-X2)];
+    const W3 = [S1, S2, L3("", "x", `${p}`), L3(into(`x=${p}`,1), "y", `${a} + ${p}`), L3("", "y", `${a+p}`)];
+    return {annotated:true, type: "choice", eq: true, show: systemT(`x + y = ${a}`,`${b}x - y = ${c}`),
              prompt: "Which working solves the simultaneous equations by substitution correctly?",
-             why: `From (1), $y = ${a} - x$. Substitute it into (2), the other equation, in brackets: $${b}x - (${a} - x) = ${c}$, so $x = ${p}$ and $y = ${a} - ${p} = ${q}$.`,
-             options: shuffle([stepsOpt(R, true), stepsOpt(W1, false), stepsOpt(W2, false), stepsOpt(W3, false)]), _sol: [p, q] };
+             why: `From (1), $y = ${a} - x$ (3). Substitute (3) into (2): $${b}x - (${a} - x) = ${c}$, so $x = ${p}$. Substitute $x=${p}$ into (1): $y=${a}-${p}=${q}$.`,
+             options: shuffle([stepsOpt(R, true), stepsOpt(rnd([W1,W2,W3]), false)]), _sol: [p, q] };
   },
 
   // Card "Choose an unknown with coefficient 1": the Step 1 with no fractions.
@@ -3784,14 +3833,14 @@ return Object.assign(GEN_SELF, {
     do { [m, n] = two(2, 7); k = between(2, 9); r = between(1, 30); s = between(1, 30); }
     while (k === m || (m === 5 && n === 3 && k === 8) || (k === 8 && s === 12) ||
            (n % m === 0 && r % m === 0) || (m % n === 0 && r % n === 0));
-    return { type: "choice", eq: true, show: `\\begin{cases}\\text{(1) } ${m}x - ${n}y = ${r}\\\\\\text{(2) } ${k}x + y = ${s}\\end{cases}`,
+    return {annotated:true, type: "choice", eq: true, show: systemT(`${m}x - ${n}y = ${r}`,`${k}x + y = ${s}`),
              prompt: "Which Step 1 makes the substitution easiest, with no fractions?",
              why: `In (2), $y$ has coefficient 1, so make $y$ the subject of (2): $y = ${s} - ${k}x$. Each other choice gives a fraction.`,
              options: shuffle([
-               { label: `$y = ${s} - ${k}x$`, ok: true },
-               { label: `$x = \\frac{${s} - y}{${k}}$`, ok: false },
-               { label: `$x = \\frac{${r} + ${n}y}{${m}}$`, ok: false },
-               { label: `$y = \\frac{${m}x - ${r}}{${n}}$`, ok: false }]) };
+               { label: `$\\text{From (2): } y = ${s} - ${k}x$`, ok: true },
+               { label: `$\\text{From (2): } x = \\frac{${s} - y}{${k}}$`, ok: false },
+               { label: `$\\text{From (1): } x = \\frac{${r} + ${n}y}{${m}}$`, ok: false },
+               { label: `$\\text{From (1): } y = \\frac{${m}x - ${r}}{${n}}$`, ok: false }]) };
   },
 
   // Complete elimination working: one correct route and one changing distractor.
@@ -3812,13 +3861,13 @@ return Object.assign(GEN_SELF, {
     const sum = add ? p + q : p - q, rhs = add ? a + b : a - b, op = add ? "+" : "-", nop = add ? "-" : "+";
     const tag = o => `\\text{(1)} ${o} \\text{(2):}`, e2 = add ? `${term(q, "x")} - y` : `${term(q, "x")} + y`;
     const xs = (coef, val) => (coef === 1 ? [] : [L3("", "x", `${val}`)]);   // no repeated 'x = ...' line
-    const tail = (X, Y) => [L3("\\text{(1):}", "y", sub1(a, p, X)), L3("", "y", `${Y}`)];
+    const tail = (X, Y) => [L3(into(`x=${X}`,1), "y", sub1(a, p, X)), L3("", "y", `${Y}`)];
     const R = [L3(tag(op), term(sum, "x"), `${rhs}`), ...xs(sum, P), ...tail(P, Q)];
     const W1 = [L3(tag(nop), term(add ? p - q : p + q, "x"), `${add ? a - b : a + b}`), ...xs(add ? p - q : p + q, xw), ...tail(xw, a - p * xw)];
     const W2 = [L3(tag(op), term(sum, "x"), `${add ? a - b : a + b}`), ...xs(sum, xc), ...tail(xc, a - p * xc)];
     const W3 = [L3(tag(op), term(sum, "x"), `${rhs}`), ...xs(sum, P),
-                L3("\\text{(1):}", "y", `${a} + ${p === 1 ? "" : p}${P < 0 || p !== 1 ? `(${P})` : P}`), L3("", "y", `${a + p * P}`)];   // a sign slip in Step 4
-    return { type: "choice", eq: true, show: `\\begin{cases}\\text{(1) } ${term(p, "x")} + y = ${a}\\\\\\text{(2) } ${e2} = ${b}\\end{cases}`,
+                L3(into(`x=${P}`,1), "y", `${a} + ${p === 1 ? "" : p}${P < 0 || p !== 1 ? `(${P})` : P}`), L3("", "y", `${a + p * P}`)];
+    return {annotated:true, type: "choice", eq: true, show: systemT(`${term(p, "x")} + y = ${a}`,`${e2} = ${b}`),
              prompt: "Which working solves the simultaneous equations by elimination correctly?",
              why: `The coefficients of $y$ are equal in magnitude and ${add ? "opposite in sign, so add" : "have the same sign, so subtract"}: (1) ${op} (2) gives $${term(sum, "x")} = ${rhs}$, so $x = ${P}$. Then (1) gives $y = ${Q}$.`,
              options: shuffle([stepsOpt(R, true), stepsOpt(rnd([W1, W2, W3]), false)]), _sol: [P, Q] };
@@ -3836,7 +3885,7 @@ return Object.assign(GEN_SELF, {
     const W1 = [line(a, a, m, r, 1), line(b, b, n, s, 2)];                              // the multipliers swapped
     const W2 = [line(b, a, m, r, 1), L3("\\text{(2):}", `${b}x + ${n}y`, `${s}`)];         // only one equation multiplied
     const W3 = [line(b, a, m, r, 1), line(b, b, n, s, 2)];                              // both multiplied by the same number
-    return { type: "choice", eq: true, show: `\\begin{cases}\\text{(1) } ${a}x + ${m}y = ${r}\\\\\\text{(2) } ${b}x + ${n}y = ${s}\\end{cases}`,
+    return {annotated:true, type: "choice", eq: true, show: systemT(`${a}x + ${m}y = ${r}`,`${b}x + ${n}y = ${s}`),
              prompt: `Which working makes the coefficients of $x$ equal?`,
              why: `The L.C.M. of ${a} and ${b} is ${a * b}. Multiply (1) by ${b} and (2) by ${a}: both have $${a * b}x$.`,
              options: shuffle([stepsOpt(R, true), stepsOpt(W1, false), stepsOpt(W2, false), stepsOpt(W3, false)]), _equalX: true };
@@ -3895,40 +3944,40 @@ return Object.assign(GEN_SELF, {
   "graphical-solve": () => {
     const [x,y]=rnd([[2,3],[3,2],[-2,3],[2,-3],[-3,-2],[3,-2]]),m=1,n=-1,c=y-x,d=y+x;
     const opt=(C,D,PX,PY,X,Y,ok)=>({label:`$\\begin{array}{c|rrr}y\\text{ (1)}&${-2+C}&${C}&${2+C}\\\\y\\text{ (2)}&${2+D}&${D}&${-2+D}\\end{array}$ $P(${PX},${PY})$: $x=${X}$, $y=${Y}$`,ok});
-    return {type:"choice",eq:true,show:`\\begin{cases}\\text{(1) }y=x ${c<0?'- '+(-c):'+ '+c}\\\\\\text{(2) }y=-x ${d<0?'- '+(-d):'+ '+d}\\end{cases}`,prompt:"For $x=-2,0,2$, which table and solution match the graphs?",plot:{type:"plot",x:[-6,6],y:[-9,9],grid:{step:1,every:2},curves:[{f:`x+(${c})`,style:"main"},{f:`-x+(${d})`,style:"compare"}],points:[{x,y,label:"$P$",pos:"above-right"}]},why:`Calculate each row at $x=-2,0,2$. The graphs meet at $P(${x},${y})$, so $x=${x}$, $y=${y}$.`,options:shuffle([opt(c,d,x,y,x,y,true),rnd([opt(c,d+2,x+1,y+1,x+1,y+1,false),opt(c,d,y,x,y,x,false),opt(c,d,x,y,y,x,false)])])};
+    return {type:"choice",eq:true,show:systemT(`y=x ${c<0?'- '+(-c):'+ '+c}`,`y=-x ${d<0?'- '+(-d):'+ '+d}`),prompt:"For $x=-2,0,2$, which table and solution match the graphs?",plot:{type:"plot",x:[-6,6],y:[-9,9],grid:{step:1,every:2},curves:[{f:`x+(${c})`,style:"main"},{f:`-x+(${d})`,style:"compare"}],points:[{x,y,label:"$P$",pos:"above-right"}]},why:`Calculate the rows from (1) and (2) at $x=-2,0,2$, then draw both graphs. They meet at $P(${x},${y})$, so $x=${x}$, $y=${y}$.`,options:shuffle([opt(c,d,x,y,x,y,true),rnd([opt(c,d+2,x+1,y+1,x+1,y+1,false),opt(c,d,y,x,y,x,false),opt(c,d,x,y,y,x,false)])])};
   },
   "multiply-solve": () => {
     const [x,y,a,b]=rnd([[2,1,3,2],[3,2,2,3],[1,3,4,2],[4,1,2,5],[2,3,5,2],[3,1,4,3]]),A=a*x+b*y,B=x-y;
-    const opt=(C,X,Y,ok)=>stepsOpt([L3("",`${a}x-${a}y`,`${C}`),L3("",`${a+b}y`,`${A-C}`),L3("","y",Y),L3("","x",`\\frac{${A}-${b}(${Y})}{${a}}`),L3("","x",X)],ok);
+    const opt=(C,X,Y,ok)=>stepsOpt([L3(operation(`(2) × ${a}`),`${a}x-${a}y`,`${C}`,3),L3(operation('(1) − (3)'),`${a+b}y`,`${A-C}`),L3("","y",Y),L3(into(`y=${Y}`,1),"x",`\\frac{${A}-${b}(${Y})}{${a}}`),L3("","x",X)],ok);
     const wrongY=rat(A-B,a+b),wrongX=rat(A*(a+b)-b*(A-B),a*(a+b));
     const finalSlip=opt(a*B,String(-x),String(y),false);
-    return {type:"choice",eq:true,show:`\\begin{cases}\\text{(1) }${a}x+${b}y=${A}\\\\\\text{(2) }x-y=${B}\\end{cases}`,prompt:`Multiply (2) by ${a}, then eliminate $x$. Which whole working is correct?`,why:`The new equation is $${a}x-${a}y=${a*B}$. Subtract it from (1): $${a+b}y=${(a+b)*y}$, so $y=${y}$. Then (1) gives $x=${x}$.`,options:shuffle([opt(a*B,String(x),String(y),true),rnd([opt(B,wrongX,wrongY,false),opt(a*B,rat(A+b*y,a),String(-y),false),finalSlip])])};
+    return {annotated:true,type:"choice",eq:true,show:systemT(`${a}x+${b}y=${A}`,`x-y=${B}`),prompt:`Multiply (2) by ${a}, then eliminate $x$. Which whole working is correct?`,why:`Multiply (2) by ${a} to obtain (3): $${a}x-${a}y=${a*B}$. Then (1) − (3) gives $${a+b}y=${(a+b)*y}$, so $y=${y}$. Substitute $y=${y}$ into (1) to obtain $x=${x}$.`,options:shuffle([opt(a*B,String(x),String(y),true),rnd([opt(B,wrongX,wrongY,false),opt(a*B,rat(A+b*y,a),String(-y),false),finalSlip])])};
   },
   "lcm-solve": () => {
     const [x,y,a,b]=rnd([[2,1,2,3],[3,2,3,2],[1,3,2,5],[4,1,5,2],[2,3,3,4],[3,1,4,3]]),A=a*x+y,B=b*x-y,S=a+b;
-    const opt=(Y,X,ok)=>stepsOpt([L3("",`${a*b}x+${b}y`,`${b*A}`),L3("",`${a*b}x-${a}y`,`${a*B}`),L3("",`${S}y`,`${b*A-a*B}`),L3("","y",`${Y}`),L3("","x",`\\frac{${A}-(${Y})}{${a}}`),L3("","x",`${X}`)],ok);
-    return {type:"choice",eq:true,show:`\\begin{cases}\\text{(1) }${a}x+y=${A}\\\\\\text{(2) }${b}x-y=${B}\\end{cases}`,prompt:`Make the coefficients of $x$ equal to ${a*b}. Which whole elimination working is correct?`,why:`Multiply (1) by ${b}, (2) by ${a}, then subtract. This gives $${S}y=${S*y}$, so $y=${y}$ and $x=${x}$.`,options:shuffle([opt(y,x,true),rnd([opt(-y,rat(A+y,a),false),opt(y,-x,false),stepsOpt([L3("",`${a*a}x+${a}y`,`${a*A}`),L3("",`${b*b}x-${b}y`,`${b*B}`),L3("",`${S}y`,`${a*A-b*B}`),L3("","y",rat(a*A-b*B,S)),L3("","x",`\\frac{${A}-(${rat(a*A-b*B,S)})}{${a}}`),L3("","x",rat(A*S-(a*A-b*B),a*S))],false)])])};
+    const opt=(Y,X,ok)=>stepsOpt([L3(operation(`(1) × ${b}`),`${a*b}x+${b}y`,`${b*A}`,3),L3(operation(`(2) × ${a}`),`${a*b}x-${a}y`,`${a*B}`,4),L3(operation('(3) − (4)'),`${S}y`,`${b*A-a*B}`),L3("","y",`${Y}`),L3(into(`y=${Y}`,1),"x",`\\frac{${A}-(${Y})}{${a}}`),L3("","x",`${X}`)],ok);
+    return {annotated:true,type:"choice",eq:true,show:systemT(`${a}x+y=${A}`,`${b}x-y=${B}`),prompt:`Make the coefficients of $x$ equal to ${a*b}. Which whole elimination working is correct?`,why:`Multiply (1) by ${b} to obtain (3), and (2) by ${a} to obtain (4). Then (3) − (4) gives $${S}y=${S*y}$. Thus $y=${y}$; substitute into (1) to obtain $x=${x}$.`,options:shuffle([opt(y,x,true),rnd([opt(-y,rat(A+y,a),false),opt(y,-x,false),stepsOpt([L3(operation(`(1) × ${a}`),`${a*a}x+${a}y`,`${a*A}`,3),L3(operation(`(2) × ${b}`),`${b*b}x-${b}y`,`${b*B}`,4),L3(operation('(3) − (4)'),`${S}y`,`${a*A-b*B}`),L3("","y",rat(a*A-b*B,S)),L3(into(`y=${rat(a*A-b*B,S)}`,1),"x",`\\frac{${A}-(${rat(a*A-b*B,S)})}{${a}}`),L3("","x",rat(A*S-(a*A-b*B),a*S))],false)])])};
   },
   "application-route": () => {
     const [x,y]=rnd([[7,2],[8,3],[9,4],[6,1],[8,1],[9,2]]),s=x+y,d=x-y;
-    const opt=(X,Y,ok)=>({label:`$\\begin{gathered}\\begin{cases}x+y=${s}\\\\x-y=${d}\\end{cases}\\\\\\begin{aligned}2x&=${2*x}\\\\x&=${X},\\quad y=${Y}\\end{aligned}\\end{gathered}$`,ok});
-    return {type:"choice",eq:true,prompt:`Leo and May have ${s} stamps in total. Leo has ${d} more than May. Let Leo have $x$ stamps and May have $y$ stamps. Which whole solution is correct?`,why:`The conditions give $\\begin{cases}x+y=${s}\\\\x-y=${d}\\end{cases}$. Adding gives $2x=${2*x}$, so Leo has ${x} stamps and May has ${y} stamps. Both conditions hold.`,options:shuffle([opt(x,y,true),rnd([opt(y,x,false),opt(x+1,y-1,false),opt(x-1,y+1,false)])])};
+    const opt=(X,Y,ok)=>routeOpt(`x+y=${s}`,`x-y=${d}`,[L3(operation('(1) + (2)'),'2x',`${2*x}`),L3('','x',`${X}`),L3(into(`x=${X}`,1),'y',`${s}-(${X})`),L3('','y',`${Y}`)],ok);
+    return {annotated:true,type:"choice",eq:true,prompt:`Leo and May have ${s} stamps in total. Leo has ${d} more than May. Let Leo have $x$ stamps and May have $y$ stamps. Which whole solution is correct?`,why:`The conditions give ${systemMath(`x+y=${s}`,`x-y=${d}`)}. Then (1) + (2) gives $2x=${2*x}$, so $x=${x}$. Substitute into (1): $y=${s}-${x}=${y}$.`,options:shuffle([opt(x,y,true),rnd([opt(y,x,false),opt(x+1,y-1,false),opt(x-1,y+1,false)])])};
   },
   "buying-route": () => {
     const [x,y,a,b]=rnd([[2,3,5,2],[3,2,4,1],[1,4,6,2],[4,2,5,3],[3,4,3,1],[2,5,4,2]]),n=x+y,t=a*x+b*y;
-    const opt=(D,X,Y,ok)=>({label:`$\\begin{gathered}\\begin{cases}x+y=${n}\\\\${a}x+${b}y=${t}\\end{cases}\\\\\\begin{aligned}${a-b}x&=${D}\\\\x&=${X},\\quad y=${Y}\\end{aligned}\\end{gathered}$`,ok});
-    return {type:"choice",eq:true,prompt:`A pen costs ${a} dollars and a pencil costs ${b} ${b===1?'dollar':'dollars'}. Buy ${n} items for ${t} dollars. Let $x$ and $y$ be the numbers of pens and pencils. Which whole solution is correct?`,why:`Subtract $${b}(x+y)=${b*n}$ from the money equation: $${a-b}x=${t-b*n}$. Thus $x=${x}$, $y=${y}$, giving ${x} pens and ${y} pencils.`,options:shuffle([opt(t-b*n,x,y,true),rnd([opt((a-b)*(x+1),x+1,y-1,false),opt(t-b*n,y,x,false),opt(t-b*n,x+2,y-2,false)])])};
+    const opt=(D,X,Y,ok)=>routeOpt(`x+y=${n}`,`${a}x+${b}y=${t}`,[L3(operation(`(2) − ${b} × (1)`),`${a-b}x`,`${D}`),L3('','x',`${X}`),L3(into(`x=${X}`,1),'y',`${n}-(${X})`),L3('','y',`${Y}`)],ok);
+    return {annotated:true,type:"choice",eq:true,prompt:`A pen costs ${a} dollars and a pencil costs ${b} ${b===1?'dollar':'dollars'}. Buy ${n} items for ${t} dollars. Let $x$ and $y$ be the numbers of pens and pencils. Which whole solution is correct?`,why:`Use (1) for the item total and (2) for the cost. Then (2) − ${b} × (1) gives $${a-b}x=${t-b*n}$, so $x=${x}$. Substitute into (1): $y=${n}-${x}=${y}$.`,options:shuffle([opt(t-b*n,x,y,true),rnd([opt((a-b)*(x+1),x+1,y-1,false),opt(t-b*n,y,x,false),opt(t-b*n,x+2,y-2,false)])])};
   },
   "age-route": () => {
     const [y,h]=rnd([[7,3],[9,3],[10,6],[8,3],[11,6],[12,3]]),k=2,x=2*y-h,s=x+y;
-    const opt=(C,X,Y,ok,wrongTime=false)=>({label:`$\\begin{gathered}\\begin{cases}x+y=${s}\\\\x${wrongTime?'+':'-'}${h}=${k}(y-${h})\\end{cases}\\\\\\begin{aligned}x&=${k}y-${C}\\\\${k+1}y&=${s+C}\\\\y&=${Y},\\quad x=${X}\\end{aligned}\\end{gathered}$`,ok});
+    const opt=(C,X,Y,ok,wrongTime=false)=>routeOpt(`x+y=${s}`,`x${wrongTime?'+':'-'}${h}=${k}(y-${h})`,[L3(from(2),'x',`${k}y-${C}`,3),L3(operation('(3) into (1)'),`${k+1}y`,`${s+C}`),L3('','y',`${Y}`),L3(into(`y=${Y}`,1),'x',`${s}-(${Y})`),L3('','x',`${X}`)],ok);
     const badC=(k+1)*h,badY=(s+badC)/(k+1);
-    return {type:"choice",eq:true,prompt:`Amy and Ben are ${s} years old in total now. ${h} years ago, Amy was ${k} times Ben's age. Let their present ages be $x$ and $y$. Which whole solution is correct?`,why:`Both ages decrease by ${h}: $x-${h}=${k}(y-${h})$, so $x=${k}y-${(k-1)*h}$. With $x+y=${s}$, we get $${k+1}y=${s+(k-1)*h}$, so $y=${y}$ and $x=${x}$.`,options:shuffle([opt((k-1)*h,x,y,true),rnd([opt(badC,s-badY,badY,false,true),opt((k-1)*h,y,x,false),opt((k-1)*h,x+1,y-1,false)])])};
+    return {annotated:true,type:"choice",eq:true,prompt:`Amy and Ben are ${s} years old in total now. ${h} years ago, Amy was ${k} times Ben's age. Let their present ages be $x$ and $y$. Which whole solution is correct?`,why:`From (2), $x=${k}y-${(k-1)*h}$ (3). Substitute (3) into (1): $${k+1}y=${s+(k-1)*h}$, so $y=${y}$. Substitute into (1): $x=${s}-${y}=${x}$.`,options:shuffle([opt((k-1)*h,x,y,true),rnd([opt(badC,s-badY,badY,false,true),opt((k-1)*h,y,x,false),opt((k-1)*h,x+1,y-1,false)])])};
   },
   "mixture-route": () => {
     const [x,y]=rnd([[2,3],[3,2],[1,4],[4,1],[2,5],[5,2]]),s=x+y,A=2*x+4*y;
-    const opt=(D,X,Y,ok,coef=2)=>({label:`$\\begin{gathered}\\begin{cases}x+y=${s}\\\\0.2x+0.4y=${(A/10).toFixed(1)}\\end{cases}\\\\\\begin{aligned}${coef}y&=${D}\\\\y&=${Y},\\quad x=${X}\\end{aligned}\\end{gathered}$`,ok});
-    return {type:"choice",eq:true,prompt:`Drink A is 20% juice; drink B is 40% juice. Make ${s} L of mixture containing ${(A/10).toFixed(1)} L of juice. Let the amounts be $x$ L and $y$ L. Which whole solution is correct?`,why:`The conditions give $\\begin{cases}x+y=${s}\\\\0.2x+0.4y=${(A/10).toFixed(1)}\\end{cases}$. Multiply the juice equation by 10 and subtract $2(x+y)=${2*s}$: $2y=${2*y}$, so $y=${y}$ and $x=${x}$.`,options:shuffle([opt(2*y,x,y,true),rnd([opt(2*y,y,x,false),opt(2*y,rat(2*s-y,2),rat(y,2),false,4),opt(2*y,x+1,y,false)])])};
+    const opt=(D,X,Y,ok,coef=2)=>routeOpt(`x+y=${s}`,`0.2x+0.4y=${(A/10).toFixed(1)}`,[L3(operation('(2) × 10 − (1) × 2'),`${coef}y`,`${D}`),L3('','y',`${Y}`),L3(into(`y=${Y}`,1),'x',`${s}-(${Y})`),L3('','x',`${X}`)],ok);
+    return {annotated:true,type:"choice",eq:true,prompt:`Drink A is 20% juice; drink B is 40% juice. Make ${s} L of mixture containing ${(A/10).toFixed(1)} L of juice. Let the amounts be $x$ L and $y$ L. Which whole solution is correct?`,why:`Use (1) for total volume and (2) for juice content. Then (2) × 10 − (1) × 2 gives $2y=${2*y}$, so $y=${y}$. Substitute into (1): $x=${s}-${y}=${x}$.`,options:shuffle([opt(2*y,x,y,true),rnd([opt(2*y,y,x,false),opt(2*y,rat(2*s-y,2),rat(y,2),false,4),opt(2*y,x+1,y,false)])])};
   },
   "digit-model": () => {
     const [a,b]=rnd([[2,7],[3,8],[4,6],[5,9],[6,2],[8,3]]),n=10*a+b;
@@ -3940,19 +3989,19 @@ return Object.assign(GEN_SELF, {
   },
   "derived-answer": () => {
     const [x,y]=rnd([[3,2],[4,1],[5,2],[3,4],[6,1],[4,3]]),A=2*x+y,B=x+3*y;
-    const opt=(X,Y,S,ok)=>({label:`$\\begin{gathered}\\begin{cases}2x+y=${A}\\\\x+3y=${B}\\end{cases}\\\\\\begin{aligned}5y&=${2*B-A}\\\\y&=${Y},\\quad x=${X}\\\\x+y&=${S}\\end{aligned}\\end{gathered}$`,ok});
-    return {type:"choice",eq:true,prompt:`Two cakes and one drink cost ${A} dollars. One cake and three drinks cost ${B} dollars. Let one cake cost $x$ dollars and one drink cost $y$ dollars. Find the cost of one cake and one drink. Which whole working is correct?`,why:`Twice the second equation minus the first gives $5y=${2*B-A}$, so $y=${y}$ and $x=${x}$. The requested cost is $x+y=${x+y}$ dollars.`,options:shuffle([opt(x,y,x+y,true),rnd([opt(x,y,x,false),opt(x,y,y,false),opt(x+1,y,x+y+1,false)])])};
+    const opt=(X,Y,S,ok)=>routeOpt(`2x+y=${A}`,`x+3y=${B}`,[L3(operation('(2) × 2 − (1)'),'5y',`${2*B-A}`),L3('','y',`${Y}`),L3(into(`y=${Y}`,1),'x',`\\frac{${A}-(${Y})}{2}`),L3('','x',`${X}`),L3('','x+y',`${S}`)],ok);
+    return {annotated:true,type:"choice",eq:true,prompt:`Two cakes and one drink cost ${A} dollars. One cake and three drinks cost ${B} dollars. Let one cake cost $x$ dollars and one drink cost $y$ dollars. Find the cost of one cake and one drink. Which whole working is correct?`,why:`Then (2) × 2 − (1) gives $5y=${2*B-A}$, so $y=${y}$. Substitute into (1): $x=${x}$. The requested cost is $x+y=${x+y}$ dollars.`,options:shuffle([opt(x,y,x+y,true),rnd([opt(x,y,x,false),opt(x,y,y,false),opt(x+1,y,x+y+1,false)])])};
   },
   "digit-solve": () => {
     const [a,b]=rnd([[2,5],[3,7],[4,6],[1,8],[2,7],[3,5]]),S=a+b,D=b-a;
-    const opt=(sgn,T,A,B,N,ok)=>({label:`$\\begin{gathered}\\begin{cases}a+b=${S}\\\\${sgn===1?'9b-9a':'9a-9b'}=${9*D}\\end{cases}\\\\\\begin{aligned}${sgn===1?'b-a':'a-b'}&=${D}\\\\2b&=${T}\\\\b&=${B},\\quad a=${A}\\\\10a+b&=${N}\\end{aligned}\\end{gathered}$`,ok});
-    return {type:"choice",eq:true,prompt:`A two-digit number has digit sum ${S}. Reversing its digits makes it ${9*D} larger. Let $a$ be the tens digit and $b$ the units digit. Which whole working finds the original number correctly?`,why:`The conditions give $\\begin{cases}a+b=${S}\\\\(10b+a)-(10a+b)=${9*D}\\end{cases}$. Simplify to $b-a=${D}$; adding gives $2b=${2*b}$. Thus $b=${b}$, $a=${a}$, and the original number is $10a+b=${10*a+b}$.`,options:shuffle([opt(1,2*b,a,b,10*a+b,true),rnd([opt(-1,2*a,b,a,10*b+a,false),opt(1,2*a,b,a,10*b+a,false),opt(1,2*b,a,b,10*b+a,false)])])};
+    const opt=(sgn,T,A,B,N,ok)=>routeOpt(`a+b=${S}`,`${sgn===1?'9b-9a':'9a-9b'}=${9*D}`,[L3(operation('(2) ÷ 9'),sgn===1?'b-a':'a-b',`${D}`,3),L3(operation('(1) + (3)'),'2b',`${T}`),L3('','b',`${B}`),L3(into(`b=${B}`,1),'a',`${A}`),L3('','10a+b',`${N}`)],ok);
+    return {annotated:true,type:"choice",eq:true,prompt:`A two-digit number has digit sum ${S}. Reversing its digits makes it ${9*D} larger. Let $a$ be the tens digit and $b$ the units digit. Which whole working finds the original number correctly?`,why:`Divide (2) by 9 to obtain $b-a=${D}$ (3). Then (1) + (3) gives $2b=${2*b}$, so $b=${b}$. Substitute into (1): $a=${a}$. The original number is $10a+b=${10*a+b}$.`,options:shuffle([opt(1,2*b,a,b,10*a+b,true),rnd([opt(-1,2*a,b,a,10*b+a,false),opt(1,2*a,b,a,10*b+a,false),opt(1,2*b,a,b,10*b+a,false)])])};
   },
   "giving-solve": () => {
     const [y,h,k]=rnd([[2,3,2],[3,3,2],[2,2,3],[4,2,3],[3,6,2],[5,4,3]]),x=k*y+(k+1)*h,N=x+y;
-    const opt=(giver,receiver,Y,X,ok)=>({label:`$\\begin{gathered}\\begin{cases}x+y=${N}\\\\x${giver>0?'+':'-'}${h}=${k}(y${receiver>0?'+':'-'}${h})\\end{cases}\\\\\\begin{aligned}${k+1}y&=${N+giver*h-k*receiver*h}\\\\y&=${Y}\\\\x&=${X}\\end{aligned}\\end{gathered}$`,ok});
+    const opt=(giver,receiver,Y,X,ok)=>routeOpt(`x+y=${N}`,`x${giver>0?'+':'-'}${h}=${k}(y${receiver>0?'+':'-'}${h})`,[L3(from(1),'x',`${N}-y`,3),L3(operation('(3) into (2)'),`${k+1}y`,`${N+giver*h-k*receiver*h}`),L3('','y',`${Y}`),L3(into(`y=${Y}`,1),'x',`${X}`)],ok);
     const wrongReceive=(N+(k-1)*h)/(k+1),wrongGive=(N-(k-1)*h)/(k+1);
-    return {type:"choice",eq:true,prompt:`A and B have ${N} counters altogether. A gives B ${h} counters. A then has ${k} times as many as B. Let their original numbers be $x$ and $y$. Which whole working is correct?`,why:`Use $\\begin{cases}x+y=${N}\\\\x-${h}=${k}(y+${h})\\end{cases}$ for the original total and the new amounts. Substitute $x=${N}-y$ to get $${k+1}y=${(k+1)*y}$. Thus B started with ${y} counters and A with ${x}.`,options:shuffle([opt(-1,1,y,x,true),rnd([opt(-1,-1,wrongReceive,N-wrongReceive,false),opt(1,1,wrongGive,N-wrongGive,false),opt(-1,1,y,N+y,false)])])};
+    return {annotated:true,type:"choice",eq:true,prompt:`A and B have ${N} counters altogether. A gives B ${h} counters. A then has ${k} times as many as B. Let their original numbers be $x$ and $y$. Which whole working is correct?`,why:`From (1), $x=${N}-y$ (3). Substitute (3) into (2): $${k+1}y=${(k+1)*y}$, so $y=${y}$. Substitute into (1): $x=${x}$. These are the original amounts.`,options:shuffle([opt(-1,1,y,x,true),rnd([opt(-1,-1,wrongReceive,N-wrongReceive,false),opt(1,1,wrongGive,N-wrongGive,false),opt(-1,1,y,N+y,false)])])};
   },
 
 });
@@ -4150,7 +4199,7 @@ function fillCheck(a, c, ch) {
     if (item.type === "multi") body.appendChild(multiEl(item, done, refresh));
     else if (item.type === "sort") body.appendChild(sortEl(item, done, refresh));
     else {
-      const opts = el("div", "ck-opts" + (item.eq ? " eq" : "") + (item.steps ? " steps" : "") + (item.type === "pics" ? " pics" : ""));
+      const opts = el("div", "ck-opts" + (item.eq ? " eq" : "") + (item.steps ? " steps" : "") + (item.annotated ? " annotated" : "") + (item.annotationStack ? " annotated-stack" : "") + (item.type === "pics" ? " pics" : ""));
       if (item.type === "pics" && item.options.length === 2) opts.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
       item.options.forEach(o => {
         const b = el("button", "ck-opt");
@@ -4390,7 +4439,7 @@ function quizQuestionEl() {
   if (item.type === "multi") scroll.append(multiEl(item, false, change));
   else if (item.type === "sort") scroll.append(sortEl(item, false, change));
   else {
-    const opts = el("div", "ck-opts" + (item.eq ? " eq" : "") + (item.steps ? " steps" : "") + (item.type === "pics" ? " pics" : ""));
+    const opts = el("div", "ck-opts" + (item.eq ? " eq" : "") + (item.steps ? " steps" : "") + (item.annotated ? " annotated" : "") + (item.annotationStack ? " annotated-stack" : "") + (item.type === "pics" ? " pics" : ""));
     item.options.forEach((o, i) => {
       const b = el("button", "ck-opt pick"); b.type = "button"; b.setAttribute("aria-pressed", item._choice === i ? "true" : "false");
       if (item.type === "pics") { b.append(o.figure ? visualEl(o.figure) : plotEl(o.plot)); if (o.label) b.setAttribute("aria-label", o.label); }
