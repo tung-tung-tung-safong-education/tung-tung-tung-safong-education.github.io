@@ -4,6 +4,8 @@ Public teaching resources, grouped under [Tung Tung Tung SaFong Education](https
 
 ## Public routes
 
+- [Linking the Sahurs](https://tung-tung-tung-safong-education.github.io/linking-the-sahurs/)
+
 - [HKMO Heat Past Paper Bank](https://tung-tung-tung-safong-education.github.io/hkmo-paper-bank/)
 
 - [Rescue Ricky — Change the Subject Arcade](https://tung-tung-tung-safong-education.github.io/rescue-ricky/)
@@ -89,3 +91,10 @@ Public HTML SHA-256: `6f69ff4dc994069f5e11229dbd1676ee0ff8d790117d52c003fa8cfabb
 ## S5 Knowledge Cards and Quiz — 26 October 2026
 
 The existing `docs/knowledge-cards/index.html` now offers timed quizzes for S5 Chapter 3 (55 checks) and Chapter 4 (43 checks), with chapter/topic selection, mixed samples, exact revision-card links and retry of missed checks. The scoped export contains only these two chapters. Mathematical audits cover all 98 attached checks; timing remains an editorial estimate. Topics without attached checks are explicitly unassessed. Existing chapter maps and drill guides remain available.
+
+
+## Linking the Sahurs — 29 October 2026
+
+`docs/linking-the-sahurs/index.html` is an exact copy of `games development/Starline/Linking-the-Sahurs.html`. Nine regular S2 line-plotting stages lead to a ten-figure boss with six available equations and a four-line minimum. Students enter any two distinct points on a listed line; the whole infinite line and visible character silhouettes count. All artwork, fonts, KaTeX, scripts and styles are embedded. Browser progress uses the dedicated `starline-s2-progress-v3-regions` local-storage key.
+
+Update the original Starline source first, rebuild using `python3 Starline/tools/build_standalone.py` from the games workspace, then copy only the standalone HTML into this route. Source SHA-256: `ed91ff6b623c20724a9fe6b5a4ee120c2a14296d46128f2becf723221dc009ab`. Only the game HTML is published; design files, source scripts, QA records and other prototypes remain outside the publication directory.
